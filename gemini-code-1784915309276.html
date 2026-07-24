@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Penalty Shootout - Championship Stadium</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #080a10;
+      color: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      user-select: none;
+    }
+
+    #ui-container {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #current-level-title {
+      font-size: 1.1rem;
+      color: #fbc531;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #scoreboard-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      background: rgba(20, 24, 38, 0.9);
+      backdrop-filter: blur(8px);
+      padding: 12px 28px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    }
+
+    .team-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 320px;
+    }
+
+    .team-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      width: 70px;
+    }
+
+    .team-score {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #fbc531;
+      margin: 0 10px;
+    }
+
+    .score-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .penalty-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .penalty-dot.made {
+      background: #2ed573;
+      border-color: #7bed9f;
+      box-shadow: 0 0 10px #2ed573;
+    }
+
+    .penalty-dot.missed {
+      background: #ff4757;
+      border-color: #ff6b81;
+      box-shadow: 0 0 10px #ff4757;
+    }
+
+    #role-badge {
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 4px 14px;
+      border-radius: 12px;
+      background: #0984e3;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #message-overlay {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3.5rem;
+      font-weight: 900;
+      text-shadow: 0 5px 20px rgba(0, 0, 0, 0.9);
+      z-index: 20;
+      display: none;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    #instructions {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: #fff;
+      text-align: center;
+    }
+
+    #menu-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 10;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+    }
+
+    #menu-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 17, 26, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .mode-select-box {
+      display: flex;
+      gap: 20px;
+    }
+
+    .mode-btn {
+      padding: 20px 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background: #2ed573;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(46, 213, 115, 0.4);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .mode-btn:hover {
+      background: #26af5f;
+      transform: translateY(-3px);
+    }
+
+    #freeplay-modal-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      background: rgba(30, 35, 50, 0.8);
+      padding: 30px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 300px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: #2ed573;
+      cursor: pointer;
+    }
+
+    .tournament-grid {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1200px;
+      max-height: 75vh;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .country-card {
+      background: rgba(30, 35, 50, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 16px;
+      width: 210px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .country-card h2 {
+      font-size: 1.1rem;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      padding-bottom: 6px;
+      color: #fbc531;
+      text-align: center;
+    }
+
+    .level-btn {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .level-btn.unlocked {
+      background: #2ed573;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(46, 213, 115, 0.3);
+    }
+
+    .level-btn.unlocked:hover {
+      background: #26af5f;
+      transform: translateY(-2px);
+    }
+
+    .level-btn.locked {
+      background: #2f3640;
+      color: #7f8fa6;
+      cursor: not-allowed;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <button id="menu-btn" onclick="openModeSelect()">Main Menu</button>
+
+  <div id="ui-container">
+    <div id="current-level-title">Free Play</div>
+    <div id="scoreboard-panel">
+      <div id="role-badge">YOUR TURN TO SHOOT</div>
+      <div class="team-row">
+        <span class="team-name" style="color: #2ed573;">YOU</span>
+        <div class="score-dots" id="user-dots">
+          <div class="penalty-dot" id="udot-0"></div>
+          <div class="penalty-dot" id="udot-1"></div>
+          <div class="penalty-dot" id="udot-2"></div>
+          <div class="penalty-dot" id="udot-3"></div>
+          <div class="penalty-dot" id="udot-4"></div>
+        </div>
+        <span class="team-score" id="user-score">0</span>
+      </div>
+      <div class="team-row">
+        <span class="team-name" style="color: #ff4757;">CPU</span>
+        <div class="score-dots" id="cpu-dots">
+          <div class="penalty-dot" id="cdot-0"></div>
+          <div class="penalty-dot" id="cdot-1"></div>
+          <div class="penalty-dot" id="cdot-2"></div>
+          <div class="penalty-dot" id="cdot-3"></div>
+          <div class="penalty-dot" id="cdot-4"></div>
+        </div>
+        <span class="team-score" id="cpu-score">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="message-overlay">GOAL!</div>
+  <div id="instructions">Aim with cursor • Click to Shoot</div>
+
+  <div id="mode-modal" class="modal-overlay">
+    <h1 style="font-size: 2rem; letter-spacing: 2px;">Penalty Shootout</h1>
+    <div class="mode-select-box">
+      <button class="mode-btn" onclick="showCampaignMenu()">Campaign Mode</button>
+      <button class="mode-btn" onclick="showFreePlayMenu()">Free Play Mode</button>
+    </div>
+  </div>
+
+  <div id="freeplay-modal" class="modal-overlay" style="display: none;">
+    <h1>Free Play Settings</h1>
+    <div id="freeplay-modal-content">
+      <div class="slider-container">
+        <label for="diff-slider">Difficulty: <span id="diff-val" style="color: #2ed573; font-weight: bold;">20</span> / 100</label>
+        <input type="range" id="diff-slider" min="1" max="100" value="20" oninput="updateDiffLabel(this.value)">
+      </div>
+      <button class="mode-btn" onclick="startFreePlay()">Start Game</button>
+      <button class="level-btn locked" style="cursor: pointer;" onclick="showModeSelect()">Back</button>
+    </div>
+  </div>
+
+  <div id="campaign-modal" class="modal-overlay" style="display: none;">
+    <h1>Campaign Tournaments</h1>
+    <div class="tournament-grid" id="tournament-grid"></div>
+    <button class="level-btn locked" style="cursor: pointer; margin-top: 15px;" onclick="showModeSelect()">Back to Main Menu</button>
+  </div>
+
+  <script>
+    // --- Audio Engine (FX Only) ---
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playHumanVocalNote(freq, startTime, duration, vowelType, volume = 0.25) {
+      if (!audioCtx) return;
+
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const noteGain = audioCtx.createGain();
+
+      osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(freq, startTime);
+      osc2.frequency.setValueAtTime(freq * 1.006, startTime);
+
+      let f1Freq = 400, f2Freq = 800;
+      if (vowelType === 'aah') { f1Freq = 750; f2Freq = 1250; }
+
+      const formant1 = audioCtx.createBiquadFilter(); formant1.type = 'bandpass'; formant1.frequency.value = f1Freq; formant1.Q.value = 4.0;
+      const formant2 = audioCtx.createBiquadFilter(); formant2.type = 'bandpass'; formant2.frequency.value = f2Freq; formant2.Q.value = 4.5;
+
+      noteGain.gain.setValueAtTime(0, startTime);
+      noteGain.gain.linearRampToValueAtTime(volume, startTime + 0.08);
+      noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      osc1.connect(formant1); osc2.connect(formant1);
+      osc1.connect(formant2); osc2.connect(formant2);
+      formant1.connect(noteGain); formant2.connect(noteGain);
+      noteGain.connect(audioCtx.destination);
+
+      osc1.start(startTime); osc2.start(startTime);
+      osc1.stop(startTime + duration); osc2.stop(startTime + duration);
+    }
+
+    function playStadiumClap(startTime) {
+      if (!audioCtx) return;
+      const sampleRate = audioCtx.sampleRate;
+      const bufSize = sampleRate * 0.05;
+      const buf = audioCtx.createBuffer(1, bufSize, sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.008));
+
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1300 + (Math.random() * 300 - 150); filter.Q.value = 2.0;
+      const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.3, startTime); gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(startTime);
+    }
+
+    function playCheerSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      playHumanVocalNote(261.63, now, 2.0, 'aah', 0.4);
+      playHumanVocalNote(329.63, now + 0.1, 2.0, 'aah', 0.4);
+      for (let i = 0; i < 15; i++) playStadiumClap(now + (i * 0.08) + (Math.random() * 0.02));
+    }
+
+    function playGroanSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      playHumanVocalNote(220.0, now, 1.2, 'ooh', 0.3);
+      playHumanVocalNote(174.61, now + 0.2, 1.2, 'ooh', 0.3);
+    }
+
+    window.addEventListener('click', () => { initAudio(); }, { once: true });
+
+    // Campaign Data
+    function createLevelStats(id, name, kitPattern, primaryColor, secondaryColor, accentColor, diff) {
+      return { id, name, kitPattern, primaryColor, secondaryColor, accentColor, diff, speed: 0.035 + (diff / 100) * 0.05, accuracy: (diff / 100) * 0.95, hitbox: 1.1 + (diff / 100) * 0.5 };
+    }
+
+    const campaign = [
+      {
+        country: "France (Ligue 1)",
+        levels: [
+          createLevelStats("france_1", "OGC Nice", "stripes", "#d63031", "#2d3436", "#ffffff", 20),
+          createLevelStats("france_2", "Lille OSC", "chevron", "#d63031", "#0984e3", "#ffffff", 25),
+          createLevelStats("france_3", "Olympique Marseille", "clean", "#ffffff", "#00a8ff", "#fbc531", 30),
+          createLevelStats("france_4", "★ Paris SG (BOSS)", "psg_hechter", "#0a3d62", "#e84118", "#ffffff", 40)
+        ]
+      },
+      {
+        country: "Germany (Bundesliga)",
+        levels: [
+          createLevelStats("germany_1", "Eintracht Frankfurt", "stripes", "#2d3436", "#e84118", "#ffffff", 35),
+          createLevelStats("germany_2", "Bayer Leverkusen", "cross", "#d63031", "#fbc531", "#2d3436", 40),
+          createLevelStats("germany_3", "Borussia Dortmund", "bvb_pattern", "#fbc531", "#2d3436", "#ffffff", 45),
+          createLevelStats("germany_4", "★ Bayern Munich (BOSS)", "bayern_home", "#e84118", "#ffffff", "#0984e3", 55)
+        ]
+      },
+      {
+        country: "Italy (Serie A)",
+        levels: [
+          createLevelStats("italy_1", "ACF Fiorentina", "clean", "#8e44ad", "#ffffff", "#f1c40f", 50),
+          createLevelStats("italy_2", "AC Milan", "stripes", "#d63031", "#2d3436", "#ffffff", 55),
+          createLevelStats("italy_3", "Inter Milan", "stripes", "#0984e3", "#2d3436", "#fbc531", 60),
+          createLevelStats("italy_4", "★ Juventus (BOSS)", "stripes", "#ffffff", "#2d3436", "#fbc531", 70)
+        ]
+      },
+      {
+        country: "Spain (La Liga)",
+        levels: [
+          createLevelStats("spain_1", "Valencia CF", "clean", "#ffffff", "#2d3436", "#fbc531", 65),
+          createLevelStats("spain_2", "Atletico Madrid", "stripes", "#eb4d4b", "#ffffff", "#0984e3", 70),
+          createLevelStats("spain_3", "FC Barcelona", "barca_stripes", "#0984e3", "#eb4d4b", "#fbc531", 75),
+          createLevelStats("spain_4", "★ Real Madrid (BOSS)", "real_home", "#ffffff", "#fbc531", "#0a3d62", 85)
+        ]
+      },
+      {
+        country: "England (Premier League)",
+        levels: [
+          createLevelStats("england_1", "Aston Villa", "sleeves", "#6c5ce7", "#74b9ff", "#ffffff", 80),
+          createLevelStats("england_2", "Chelsea FC", "clean", "#0984e3", "#ffffff", "#fbc531", 85),
+          createLevelStats("england_3", "Arsenal FC", "sleeves", "#eb4d4b", "#ffffff", "#fbc531", 90),
+          createLevelStats("england_4", "★ Manchester City (BOSS)", "clean", "#74b9ff", "#ffffff", "#0a3d62", 100)
+        ]
+      }
+    ];
+
+    let unlockedLevels = ["france_1"]; 
+    let currentLevel = campaign[0].levels[0];
+    let isFreePlay = false;
+
+    // Turn & Game State
+    let isUserTurn = true; // true = user kicking, false = user goalkeeper
+    let userShots = []; 
+    let cpuShots = []; 
+    let isShooting = false;
+    let isShakingNet = false;
+    let netShakeTimer = 0;
+    let goalkeeperXPos = 0; // Manual GK position adjusted with arrow keys
+
+    const keysPressed = {};
+    window.addEventListener('keydown', (e) => { keysPressed[e.key] = true; });
+    window.addEventListener('keyup', (e) => { keysPressed[e.key] = false; });
+
+    function updateScoreboardUI() {
+      const uGoals = userShots.filter(s => s === 'made').length;
+      const cGoals = cpuShots.filter(s => s === 'made').length;
+      document.getElementById('user-score').textContent = uGoals;
+      document.getElementById('cpu-score').textContent = cGoals;
+
+      for (let i = 0; i < 5; i++) {
+        const uDot = document.getElementById(`udot-${i}`);
+        uDot.className = 'penalty-dot';
+        if (i < userShots.length) uDot.classList.add(userShots[i]);
+
+        const cDot = document.getElementById(`cdot-${i}`);
+        cDot.className = 'penalty-dot';
+        if (i < cpuShots.length) cDot.classList.add(cpuShots[i]);
+      }
+
+      const roleBadge = document.getElementById('role-badge');
+      const inst = document.getElementById('instructions');
+      if (isUserTurn) {
+        roleBadge.textContent = "YOUR TURN TO SHOOT";
+        roleBadge.style.background = "#0984e3";
+        inst.textContent = "Aim with cursor • Click to Shoot";
+      } else {
+        roleBadge.textContent = "DEFEND! YOU ARE KEEPER";
+        roleBadge.style.background = "#e84118";
+        inst.textContent = "Arrow Keys (← / →) to move • Click inside goal to dive";
+      }
+    }
+
+    // --- Three.js Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0d18);
+    scene.fog = new THREE.FogExp2(0x0a0d18, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    mainLight.position.set(10, 25, 10);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
+
+    function addFloodlight(x, y, z) {
+      const pLight = new THREE.PointLight(0xffffff, 0.9, 90);
+      pLight.position.set(x, y, z);
+      scene.add(pLight);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, y, 12), new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.5 }));
+      post.position.set(x, y / 2, z);
+      scene.add(post);
+    }
+    addFloodlight(-28, 20, -25); addFloodlight(28, 20, -25); addFloodlight(-28, 20, 25); addFloodlight(28, 20, 25);
+
+    // Pitch
+    let pitchCanvas = document.createElement('canvas'); pitchCanvas.width = 1024; pitchCanvas.height = 1024;
+    let pCtx = pitchCanvas.getContext('2d');
+    pCtx.fillStyle = "#1e824c"; pCtx.fillRect(0, 0, 1024, 1024);
+    pCtx.fillStyle = "#1b7a43";
+    for (let i = 0; i < 1024; i += 128) pCtx.fillRect(0, i, 1024, 64);
+    pCtx.strokeStyle = "#ffffff"; pCtx.fillStyle = "#ffffff"; pCtx.lineWidth = 10;
+    pCtx.strokeRect(50, 50, 924, 924); pCtx.beginPath(); pCtx.moveTo(50, 730); pCtx.lineTo(974, 730); pCtx.stroke();
+    pCtx.strokeRect(262, 370, 500, 360); pCtx.strokeRect(380, 610, 264, 120);
+    pCtx.beginPath(); pCtx.arc(512, 310, 14, 0, Math.PI * 2); pCtx.fill();
+    pCtx.beginPath(); pCtx.arc(512, 310, 120, 1.15 * Math.PI, 1.85 * Math.PI); pCtx.stroke();
+
+    const pitch = new THREE.Mesh(new THREE.PlaneGeometry(60, 80), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(pitchCanvas), roughness: 0.6 }));
+    pitch.rotation.x = -Math.PI / 2; pitch.position.set(0, 0, -5); pitch.receiveShadow = true;
+    scene.add(pitch);
+
+    // Goal
+    const goalGroup = new THREE.Group();
+    goalGroup.position.set(0, 0, -15);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 });
+    const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 7.5), postMat); crossbar.rotation.z = Math.PI / 2; crossbar.position.set(0, 3.2, 0); goalGroup.add(crossbar);
+    const leftPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.2), postMat); leftPost.position.set(-3.7, 1.6, 0); goalGroup.add(leftPost);
+    const rightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.2), postMat); rightPost.position.set(3.7, 1.6, 0); goalGroup.add(rightPost);
+
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 3.2, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.4 }));
+    net.position.set(0, 1.6, -1.5); goalGroup.add(net);
+    scene.add(goalGroup);
+
+    // Ball
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
+    ball.position.set(0, 0.35, 6); ball.castShadow = true;
+    scene.add(ball);
+
+    // Player Models
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xedb98a, roughness: 0.6 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.8 });
+    const cleatMat = new THREE.MeshStandardMaterial({ color: 0x1e272e });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0x2ed573, roughness: 0.3 });
+
+    let keeperCanvas = document.createElement('canvas'); keeperCanvas.width = 512; keeperCanvas.height = 512;
+    let kCtx = keeperCanvas.getContext('2d');
+    let keeperTexture = new THREE.CanvasTexture(keeperCanvas);
+
+    function updateKeeperTexture(pattern, pColor, sColor, aColor) {
+      kCtx.fillStyle = pColor; kCtx.fillRect(0, 0, 512, 512);
+      kCtx.fillStyle = sColor; kCtx.strokeStyle = sColor;
+      if (pattern === "stripes") { for (let i = 0; i < 512; i += 80) kCtx.fillRect(i, 0, 40, 512); }
+      else if (pattern === "psg_hechter") { kCtx.fillStyle = aColor; kCtx.fillRect(206, 0, 100, 512); kCtx.fillStyle = sColor; kCtx.fillRect(226, 0, 60, 512); }
+      else if (pattern === "barca_stripes") { for (let i = 0; i < 512; i += 128) kCtx.fillRect(i, 0, 64, 512); }
+      else if (pattern === "sleeves") { kCtx.fillRect(0, 0, 120, 512); kCtx.fillRect(392, 0, 120, 512); }
+      keeperTexture.needsUpdate = true;
+    }
+    updateKeeperTexture(currentLevel.kitPattern, currentLevel.primaryColor, currentLevel.secondaryColor, currentLevel.accentColor);
+
+    let kickerCanvas = document.createElement('canvas'); kickerCanvas.width = 512; kickerCanvas.height = 512;
+    let kickCtx = kickerCanvas.getContext('2d');
+    kickCtx.fillStyle = "#f1c40f"; kickCtx.fillRect(0, 0, 512, 512);
+    let kickerTexture = new THREE.CanvasTexture(kickerCanvas);
+
+    const keeperJerseyMat = new THREE.MeshStandardMaterial({ map: keeperTexture, roughness: 0.5 });
+    const kickerJerseyMat = new THREE.MeshStandardMaterial({ map: kickerTexture, roughness: 0.5 });
+    const kitShortsMat = new THREE.MeshStandardMaterial({ color: 0x1e272e, roughness: 0.6 });
+
+    function buildHumanModel(isKeeper) {
+      const group = new THREE.Group();
+      const jerseyMaterial = isKeeper ? keeperJerseyMat : kickerJerseyMat;
+
+      const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.35, 1.1, 16), jerseyMaterial); chest.position.y = 1.35; group.add(chest);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), skinMat); head.position.y = 2.1; group.add(head);
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2), hairMat); hair.position.set(0, 2.15, -0.02); group.add(hair);
+
+      const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.55, 12);
+      const leftArmGroup = new THREE.Group(); leftArmGroup.position.set(-0.5, 1.75, 0);
+      const lArm = new THREE.Mesh(armGeo, isKeeper ? jerseyMaterial : skinMat); lArm.position.y = -0.28; leftArmGroup.add(lArm);
+      const lHand = new THREE.Mesh(isKeeper ? new THREE.BoxGeometry(0.25, 0.28, 0.15) : new THREE.SphereGeometry(0.08, 8, 8), isKeeper ? gloveMat : skinMat);
+      lHand.position.y = -0.62; leftArmGroup.add(lHand); group.add(leftArmGroup);
+
+      const rightArmGroup = new THREE.Group(); rightArmGroup.position.set(0.5, 1.75, 0);
+      const rArm = new THREE.Mesh(armGeo, isKeeper ? jerseyMaterial : skinMat); rArm.position.y = -0.28; rightArmGroup.add(rArm);
+      const rHand = new THREE.Mesh(isKeeper ? new THREE.BoxGeometry(0.25, 0.28, 0.15) : new THREE.SphereGeometry(0.08, 8, 8), isKeeper ? gloveMat : skinMat);
+      rHand.position.y = -0.62; rightArmGroup.add(rHand); group.add(rightArmGroup);
+
+      const shorts = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.36, 0.45, 16), kitShortsMat); shorts.position.y = 0.72; group.add(shorts);
+      const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.65, 12);
+      const leftLegGroup = new THREE.Group(); leftLegGroup.position.set(-0.2, 0.5, 0);
+      const lLeg = new THREE.Mesh(legGeo, skinMat); lLeg.position.y = -0.32; leftLegGroup.add(lLeg);
+      const lBoot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.32), cleatMat); lBoot.position.set(0, -0.65, 0.06); leftLegGroup.add(lBoot); group.add(leftLegGroup);
+
+      const rightLegGroup = new THREE.Group(); rightLegGroup.position.set(0.2, 0.5, 0);
+      const rLeg = new THREE.Mesh(legGeo, skinMat); rLeg.position.y = -0.32; rightLegGroup.add(rLeg);
+      const rBoot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.32), cleatMat); rBoot.position.set(0, -0.65, 0.06); rightLegGroup.add(rBoot); group.add(rightLegGroup);
+
+      return { group, leftArmGroup, rightArmGroup, leftHand: lHand, rightHand: rHand, leftLegGroup, rightLegGroup };
+    }
+
+    const keeperModel = buildHumanModel(true);
+    const keeperGroup = keeperModel.group; keeperGroup.position.set(0, 0, -14.8); scene.add(keeperGroup);
+
+    const kickerModel = buildHumanModel(false);
+    const kickerGroup = kickerModel.group; kickerGroup.position.set(-1.2, 0, 6.0); scene.add(kickerGroup);
+
+    const target = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.3, 32), new THREE.MeshBasicMaterial({ color: 0xff4757, side: THREE.DoubleSide }));
+    target.position.set(0, 1.6, -14.7); scene.add(target);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 14.7);
+
+    function updateCameraPerspective() {
+      if (isUserTurn) {
+        camera.position.set(0, 2.5, 12);
+        camera.lookAt(0, 1.5, -15);
+      } else {
+        camera.position.set(0, 2.2, -18);
+        camera.lookAt(0, 1.5, 6);
+      }
+    }
+
+    window.addEventListener('mousemove', (event) => {
+      if (isShooting) return;
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersectPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(aimPlane, intersectPoint);
+      if (intersectPoint) {
+        target.position.x = Math.max(-3.3, Math.min(3.3, intersectPoint.x));
+        target.position.y = Math.max(0.4, Math.min(3.0, intersectPoint.y));
+      }
+    });
+
+    window.addEventListener('click', (e) => {
+      if (isShooting || isAnyModalOpen()) return;
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+
+      if (isUserTurn) {
+        if (userShots.length >= 5) return;
+        triggerShotSequence(target.position.clone(), null);
+      } else {
+        if (cpuShots.length >= 5) return;
+        // CPU chooses a target position
+        const cpuTargetX = (Math.random() - 0.5) * 6.0;
+        const cpuTargetY = 0.5 + Math.random() * 2.2;
+        const cpuTarget = new THREE.Vector3(cpuTargetX, cpuTargetY, -14.7);
+
+        // User dives to chosen click position
+        const userDivePoint = target.position.clone();
+        triggerShotSequence(cpuTarget, userDivePoint);
+      }
+    });
+
+    function triggerShotSequence(ballTargetPos, userDivePos) {
+      isShooting = true;
+      let kickProgress = 0;
+      const initialKickerX = kickerGroup.position.x;
+      const initialKickerZ = kickerGroup.position.z;
+
+      const runInterval = setInterval(() => {
+        kickProgress += 0.08;
+        kickerGroup.position.x = THREE.MathUtils.lerp(initialKickerX, -0.3, kickProgress);
+        kickerGroup.position.z = THREE.MathUtils.lerp(initialKickerZ, 5.3, kickProgress);
+        kickerModel.leftLegGroup.rotation.x = Math.sin(kickProgress * Math.PI * 3) * 0.8;
+        kickerModel.rightLegGroup.rotation.x = -Math.sin(kickProgress * Math.PI * 3) * 0.8;
+
+        if (kickProgress >= 1) {
+          clearInterval(runInterval);
+          executeShotAnimation(ballTargetPos, userDivePos);
+        }
+      }, 20);
+    }
+
+    function checkKeeperCollision(ballPos) {
+      const keeperBaseX = keeperGroup.position.x, keeperBaseY = keeperGroup.position.y, keeperBaseZ = keeperGroup.position.z;
+      const torsoNode = new THREE.Vector3(keeperBaseX, keeperBaseY + 1.25, keeperBaseZ);
+      const leftHandWorld = new THREE.Vector3(); keeperModel.leftHand.getWorldPosition(leftHandWorld);
+      const rightHandWorld = new THREE.Vector3(); keeperModel.rightHand.getWorldPosition(rightHandWorld);
+
+      const distTorso = ballPos.distanceTo(torsoNode);
+      const distLeftHand = ballPos.distanceTo(leftHandWorld);
+      const distRightHand = ballPos.distanceTo(rightHandWorld);
+      const effectiveHitbox = currentLevel.hitbox;
+
+      if (distTorso < effectiveHitbox || distLeftHand < (effectiveHitbox * 0.85) || distRightHand < (effectiveHitbox * 0.85)) {
+        return { hit: true, contactPoint: distLeftHand < distRightHand && distLeftHand < distTorso ? leftHandWorld : (distRightHand < distTorso ? rightHandWorld : torsoNode) };
+      }
+      return { hit: false };
+    }
+
+    function executeShotAnimation(ballTargetPos, userDivePos) {
+      let diveTargetX = 0, diveTargetY = 0;
+
+      if (isUserTurn) {
+        // AI Goalkeeper dives
+        const accuracy = currentLevel.accuracy;
+        const maxRandomOffset = (1 - accuracy) * 5.0;
+        const randomOffsetX = (Math.random() - 0.5) * maxRandomOffset;
+        const randomOffsetY = (Math.random() - 0.5) * (maxRandomOffset * 0.5);
+        diveTargetX = THREE.MathUtils.clamp(ballTargetPos.x + randomOffsetX, -3.2, 3.2);
+        diveTargetY = THREE.MathUtils.clamp(ballTargetPos.y * 0.35 + randomOffsetY * 0.2, 0.0, 0.85);
+      } else {
+        // User Goalkeeper dives toward user dive click position
+        diveTargetX = THREE.MathUtils.clamp(userDivePos.x, -3.2, 3.2);
+        diveTargetY = THREE.MathUtils.clamp(userDivePos.y * 0.35, 0.0, 0.85);
+      }
+
+      const ballStart = ball.position.clone();
+      let shotProgress = 0;
+      const startKeeperX = keeperGroup.position.x;
+
+      const shotInterval = setInterval(() => {
+        shotProgress += currentLevel.speed;
+        ball.position.lerpVectors(ballStart, ballTargetPos, shotProgress);
+        ball.rotation.x += 0.3;
+
+        keeperGroup.position.x = THREE.MathUtils.lerp(startKeeperX, diveTargetX, shotProgress);
+        keeperGroup.position.y = THREE.MathUtils.lerp(0, diveTargetY, shotProgress);
+        keeperGroup.rotation.z = THREE.MathUtils.lerp(0, -(diveTargetX - startKeeperX) * 0.22, shotProgress);
+
+        if (diveTargetX < startKeeperX) {
+          keeperModel.leftArmGroup.rotation.z = THREE.MathUtils.lerp(0, 2.2, shotProgress);
+          keeperModel.rightArmGroup.rotation.z = THREE.MathUtils.lerp(0, 1.2, shotProgress);
+        } else {
+          keeperModel.leftArmGroup.rotation.z = THREE.MathUtils.lerp(0, -1.2, shotProgress);
+          keeperModel.rightArmGroup.rotation.z = THREE.MathUtils.lerp(0, -2.2, shotProgress);
+        }
+
+        const collision = checkKeeperCollision(ball.position);
+        if (collision.hit) {
+          clearInterval(shotInterval);
+          handleSavedShot(collision.contactPoint);
+          return;
+        }
+
+        if (shotProgress >= 1) {
+          clearInterval(shotInterval);
+          handleGoalShot(ballTargetPos);
+        }
+      }, 16);
+    }
+
+    function handleSavedShot(contactPos) {
+      if (isUserTurn) userShots.push('missed');
+      else cpuShots.push('made'); // CPU shot saved means CPU missed / User scored save
+
+      if (!isUserTurn) {
+        // Correcting cpuShots array index logic
+        cpuShots[cpuShots.length - 1] = 'missed';
+      }
+
+      updateScoreboardUI();
+
+      const overlay = document.getElementById('message-overlay');
+      if (isUserTurn) {
+        overlay.textContent = "SAVED!"; overlay.style.color = "#ff4757"; playGroanSound();
+      } else {
+        overlay.textContent = "GREAT SAVE!"; overlay.style.color = "#2ed573"; playCheerSound();
+      }
+      overlay.style.display = "block";
+
+      setTimeout(() => {
+        overlay.style.display = "none";
+        advanceTurn();
+      }, 1600);
+    }
+
+    function handleGoalShot(targetPos) {
+      if (isUserTurn) userShots.push('made');
+      else cpuShots.push('made');
+
+      updateScoreboardUI();
+
+      const overlay = document.getElementById('message-overlay');
+      if (isUserTurn) {
+        overlay.textContent = "GOAL!"; overlay.style.color = "#2ed573"; playCheerSound();
+      } else {
+        overlay.textContent = "CPU SCORED!"; overlay.style.color = "#ff4757"; playGroanSound();
+      }
+      overlay.style.display = "block";
+
+      isShakingNet = true; netShakeTimer = 0;
+      ball.position.set(targetPos.x, targetPos.y, -16.2);
+
+      setTimeout(() => {
+        overlay.style.display = "none";
+        advanceTurn();
+      }, 1600);
+    }
+
+    function advanceTurn() {
+      if (isUserTurn) {
+        isUserTurn = false;
+      } else {
+        isUserTurn = true;
+      }
+
+      if (userShots.length >= 5 && cpuShots.length >= 5) {
+        finishMatch();
+      } else {
+        resetRound();
+      }
+    }
+
+    function finishMatch() {
+      const uGoals = userShots.filter(s => s === 'made').length;
+      const cGoals = cpuShots.filter(s => s === 'made').length;
+
+      const overlay = document.getElementById('message-overlay');
+      if (uGoals > cGoals) {
+        playCheerSound();
+        overlay.textContent = isFreePlay ? "VICTORY!" : "MATCH WON!";
+        overlay.style.color = "#2ed573";
+        if (!isFreePlay) unlockNextLevel();
+      } else if (uGoals < cGoals) {
+        playGroanSound();
+        overlay.textContent = "DEFEAT!";
+        overlay.style.color = "#ff4757";
+      } else {
+        overlay.textContent = "DRAW!";
+        overlay.style.color = "#fbc531";
+      }
+      overlay.style.display = "block";
+
+      setTimeout(() => {
+        overlay.style.display = "none";
+        if (isFreePlay) showFreePlayMenu();
+        else showCampaignMenu();
+      }, 2500);
+    }
+
+    function unlockNextLevel() {
+      let foundCurrent = false;
+      for (const country of campaign) {
+        for (let i = 0; i < country.levels.length; i++) {
+          if (country.levels[i].id === currentLevel.id) {
+            if (i + 1 < country.levels.length) {
+              const nextId = country.levels[i + 1].id;
+              if (!unlockedLevels.includes(nextId)) unlockedLevels.push(nextId);
+            } else {
+              const countryIdx = campaign.indexOf(country);
+              if (countryIdx + 1 < campaign.length) {
+                const nextCountryLevel = campaign[countryIdx + 1].levels[0].id;
+                if (!unlockedLevels.includes(nextCountryLevel)) unlockedLevels.push(nextCountryLevel);
+              }
+            }
+            foundCurrent = true; break;
+          }
+        }
+        if (foundCurrent) break;
+      }
+    }
+
+    function isAnyModalOpen() {
+      return document.getElementById('mode-modal').style.display !== 'none' ||
+             document.getElementById('freeplay-modal').style.display !== 'none' ||
+             document.getElementById('campaign-modal').style.display !== 'none';
+    }
+
+    function hideAllModals() {
+      document.getElementById('mode-modal').style.display = "none";
+      document.getElementById('freeplay-modal').style.display = "none";
+      document.getElementById('campaign-modal').style.display = "none";
+    }
+
+    function openModeSelect() { hideAllModals(); document.getElementById('mode-modal').style.display = "flex"; }
+    function showModeSelect() { openModeSelect(); }
+    function showCampaignMenu() { hideAllModals(); renderCampaignMenu(); document.getElementById('campaign-modal').style.display = "flex"; }
+    function showFreePlayMenu() { hideAllModals(); document.getElementById('freeplay-modal').style.display = "flex"; }
+    function updateDiffLabel(val) { document.getElementById('diff-val').textContent = val; }
+
+    function startFreePlay() {
+      isFreePlay = true;
+      const diffVal = parseInt(document.getElementById('diff-slider').value);
+      currentLevel = createLevelStats("freeplay", `Free Play (${diffVal}/100)`, "stripes", "#9b59b6", "#f1c40f", "#ffffff", diffVal);
+      updateKeeperTexture(currentLevel.kitPattern, currentLevel.primaryColor, currentLevel.secondaryColor, currentLevel.accentColor);
+      document.getElementById('current-level-title').textContent = currentLevel.name;
+      hideAllModals(); resetGameVars();
+    }
+
+    function startCampaignLevel(lvlObj, countryName) {
+      isFreePlay = false; currentLevel = lvlObj;
+      updateKeeperTexture(currentLevel.kitPattern, currentLevel.primaryColor, currentLevel.secondaryColor, currentLevel.accentColor);
+      document.getElementById('current-level-title').textContent = `${countryName} - ${currentLevel.name}`;
+      hideAllModals(); resetGameVars();
+    }
+
+    function resetGameVars() {
+      userShots = []; cpuShots = [];
+      isUserTurn = true;
+      updateScoreboardUI();
+      resetRound();
+    }
+
+    function renderCampaignMenu() {
+      const grid = document.getElementById('tournament-grid');
+      grid.innerHTML = '';
+      campaign.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'country-card';
+        let html = `<h2>${c.country}</h2>`;
+        c.levels.forEach(lvl => {
+          const isUnlocked = unlockedLevels.includes(lvl.id);
+          const btnClass = isUnlocked ? 'level-btn unlocked' : 'level-btn locked';
+          const statusText = isUnlocked ? `▶ ${lvl.diff}/100` : '🔒 Locked';
+          html += `<button class="${btnClass}" ${isUnlocked ? `onclick="selectCampaignLevel('${lvl.id}')"` : 'disabled'}>
+            <span>${lvl.name}</span><span>${statusText}</span></button>`;
+        });
+        card.innerHTML = html; grid.appendChild(card);
+      });
+    }
+
+    function selectCampaignLevel(id) {
+      for (const c of campaign) {
+        for (let lvl of c.levels) {
+          if (lvl.id === id) { startCampaignLevel(lvl, c.country); return; }
+        }
+      }
+    }
+
+    function resetRound() {
+      ball.position.set(0, 0.35, 6);
+      goalkeeperXPos = 0;
+      keeperGroup.position.set(0, 0, -14.8); keeperGroup.rotation.z = 0;
+      keeperModel.leftArmGroup.rotation.z = 0; keeperModel.rightArmGroup.rotation.z = 0;
+      kickerGroup.position.set(-1.2, 0, 6.0);
+      kickerModel.leftLegGroup.rotation.x = 0; kickerModel.rightLegGroup.rotation.x = 0;
+      isShooting = false;
+      updateCameraPerspective();
+      updateScoreboardUI();
+    }
+
+    openModeSelect();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Manual Goalkeeper movement with arrow keys during user turn as keeper
+      if (!isUserTurn && !isShooting) {
+        if (keysPressed['ArrowLeft']) goalkeeperXPos = Math.max(-3.0, goalkeeperXPos - 0.08);
+        if (keysPressed['ArrowRight']) goalkeeperXPos = Math.min(3.0, goalkeeperXPos + 0.08);
+        keeperGroup.position.x = goalkeeperXPos;
+      }
+
+      if (isShakingNet) {
+        netShakeTimer += 0.2;
+        net.position.z = -1.5 + Math.sin(netShakeTimer * 8) * 0.15;
+        if (netShakeTimer > 3) { isShakingNet = false; net.position.z = -1.5; }
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
